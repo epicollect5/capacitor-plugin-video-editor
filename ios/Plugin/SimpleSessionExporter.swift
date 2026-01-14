@@ -14,7 +14,7 @@ import UIKit
 
 /// SimpleSessionExporter, export and transcode media in Swift
 open class SimpleSessionExporter: NSObject {
-    
+
     public var asset: AVAsset?
     public var outputURL: URL?
     public var outputFileType: AVFileType? = AVFileType.mp4
@@ -30,14 +30,14 @@ open class SimpleSessionExporter: NSObject {
         self.init()
         self.asset = asset
     }
-    
+
     private var exportSession: AVAssetExportSession?;
-    
+
     public override init() {
         self.timeRange = CMTimeRange(start: CMTime.zero, end: CMTime.positiveInfinity)
         super.init()
     }
-    
+
     deinit {
         self.asset = nil
     }
@@ -46,16 +46,16 @@ open class SimpleSessionExporter: NSObject {
 // MARK: - export
 
 extension SimpleSessionExporter {
-    
+
     /// Completion handler type for when an export finishes.
     public typealias CompletionHandler = (_ status: AVAssetExportSession.Status) -> Void
-    
+
     var progress: Float {
         get {
             self.exportSession?.progress ?? 0.0;
         }
     }
-    
+
     /// Initiates an export session.
     ///
     /// - Parameter completionHandler: Handler called when an export session completes.
@@ -68,9 +68,9 @@ extension SimpleSessionExporter {
             completionHandler(.failed)
             return
         }
-        
+
         let composition = AVMutableComposition()
-        
+
         guard
             let compositionTrack = composition.addMutableTrack(
                 withMediaType: .video, preferredTrackID: kCMPersistentTrackID_Invalid),
@@ -80,12 +80,12 @@ extension SimpleSessionExporter {
             completionHandler(.failed)
             return
         }
-        
+
         // Time Range
         do {
             let timeRange = self.timeRange
             try compositionTrack.insertTimeRange(timeRange, of: assetTrack, at: .zero)
-            
+
             if let audioAssetTrack = asset.tracks(withMediaType: .audio).first,
                let compositionAudioTrack = composition.addMutableTrack(
                 withMediaType: .audio,
@@ -100,52 +100,52 @@ extension SimpleSessionExporter {
             completionHandler(.failed)
             return
         }
-        
+
         // Video size
         compositionTrack.preferredTransform = assetTrack.preferredTransform
-        
+
         let videoWidth = self.videoOutputConfiguration![AVVideoWidthKey] as? NSNumber
         let videoHeight = self.videoOutputConfiguration![AVVideoHeightKey] as? NSNumber
-        
+
         // validated to be non-nil byt this point
         let width = videoWidth!.intValue
         let height = videoHeight!.intValue
-        
+
         let videoSize = CGSize(width: width, height: height)
         let transformedVideoSize = assetTrack.naturalSize.applying(assetTrack.preferredTransform)
         let mediaSize = CGSize(width: abs(transformedVideoSize.width), height: abs(transformedVideoSize.height))
         let scale = videoSize.width / mediaSize.width
-        
+
         let videoComposition = AVMutableVideoComposition()
         videoComposition.renderSize = videoSize
         videoComposition.frameDuration = CMTime(value: 1, timescale: CMTimeScale(self.fps))
-        
+
         let instruction = AVMutableVideoCompositionInstruction()
         instruction.timeRange = CMTimeRange(
             start: .zero,
             duration: composition.duration)
         videoComposition.instructions = [instruction]
-        
+
         let layerInstruction = AVMutableVideoCompositionLayerInstruction(assetTrack: compositionTrack)
         layerInstruction.setTransform(asset.scaleTransform(scaleFactor: scale), at: CMTime.zero)
-        
+
         instruction.layerInstructions = [layerInstruction]
-        
+
         // Export
         guard let export = AVAssetExportSession(
             asset: composition,
-            presetName: AVAssetExportPresetMediumQuality)
+            presetName: AVAssetExportPresetHighestQuality)
         else {
             print("Cannot create export session.")
             completionHandler(.failed)
             return
         }
-        
+
         export.videoComposition = videoComposition
         export.outputFileType = outputFileType
         export.outputURL = outputURL
         self.exportSession = export
-        
+
         export.exportAsynchronously {
             DispatchQueue.main.async {
                 switch export.status {
@@ -167,7 +167,7 @@ extension SimpleSessionExporter {
 // MARK: - AVAsset extension
 
 extension AVAsset {
-    
+
     /// Initiates a SimpleSessionExport on the asset
     ///
     /// - Parameters:
@@ -185,26 +185,26 @@ extension AVAsset {
         exporter.videoOutputConfiguration = videoOutputConfiguration
         exporter.export(completionHandler: completionHandler)
     }
-    
+
     private var g_naturalSize: CGSize {
         return tracks(withMediaType: AVMediaType.video).first?.naturalSize ?? .zero
     }
-    
+
     var g_correctSize: CGSize {
         return g_isPortrait ? CGSize(width: g_naturalSize.height, height: g_naturalSize.width) : g_naturalSize
     }
-    
+
     var g_isPortrait: Bool {
         let portraits: [UIInterfaceOrientation] = [.portrait, .portraitUpsideDown]
         return portraits.contains(g_orientation)
     }
-    
+
     // Same as UIImageOrientation
     var g_orientation: UIInterfaceOrientation {
         guard let transform = tracks(withMediaType: AVMediaType.video).first?.preferredTransform else {
             return .portrait
         }
-        
+
         switch (transform.tx, transform.ty) {
         case (0, 0):
             return .landscapeRight
@@ -216,7 +216,7 @@ extension AVAsset {
             return .portrait
         }
     }
-    
+
     public func scaleTransform(scaleFactor: CGFloat) -> CGAffineTransform {
         let offset: CGPoint
         let angle: Double
