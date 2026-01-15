@@ -131,30 +131,30 @@ extension SimpleSessionExporter {
 
         instruction.layerInstructions = [layerInstruction]
 
-        // Export
-        guard let export = AVAssetExportSession(
-            asset: composition,
-            presetName: AVAssetExportPreset1280x720)
-        else {
-            print("Cannot create export session.")
-            completionHandler(.failed)
-            return
-        }
+       // Export
+       guard
+         let export = AVAssetExportSession(
+           asset: composition,
+           presetName: AVAssetExportPreset1280x720)
+       else {
+         print("Cannot create export session.")
+         completionHandler(.failed)
+         return
+       }
 
-         // --- IMPROVED MAGIC CODE ---
-                let seconds = CMTimeGetSeconds(composition.duration)
-                if seconds > 0 {
-                    // 2Mbps = 250,000 bytes per second
-                    // We add a 10% buffer to account for audio and metadata overhead
-                    let bitrateBytesPerSecond: Double = 250000
-                    let buffer: Double = 1.1
-                    let limit = Int64(seconds * bitrateBytesPerSecond * buffer)
+       // --- IMPROVED MAGIC CODE ---
+       let seconds = CMTimeGetSeconds(composition.duration)
+       if seconds > 0 {
+         // 2Mbps = 250,000 bytes per second
+         // We add a 10% buffer to account for audio and metadata overhead
+         let bitrateBytesPerSecond: Double = 250000
+         let buffer: Double = 1.1
+         let limit = Int64(seconds * bitrateBytesPerSecond * buffer)
 
-                    // Safety check: Don't set a limit smaller than 1MB
-                    export.fileLengthLimit = max(limit, 1024 * 1024)
-                }
-                // ---------------------------
-
+         // Safety check: Don't set a limit smaller than 1MB
+         export.fileLengthLimit = max(limit, 1024 * 1024)
+       }
+       // ---------------------------
 
         export.videoComposition = videoComposition
         export.outputFileType = outputFileType
