@@ -1,3 +1,8 @@
+# Custom changes for Epicollect5
+
+- iOS force 1280x720 resolution and ~2MB bitrate
+- Android force ~2MB bitrate
+
 # capacitor-plugin-video-editor
 
 Capacitor plugin to edit videos
